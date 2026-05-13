@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anne-Sophie Richard — Product Designer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --white: #ffffff; --ink: #111111; --muted: #888; --border: #E5E5E5;
+  --mono: 'DM Mono', monospace; --sans: 'DM Sans', system-ui, sans-serif;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans); background: var(--white); color: var(--ink);
+  font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+
+/* ── INTRO ── */
+#intro-screen {
+  position: fixed; inset: 0; z-index: 200; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.8s ease;
+}
+#intro-screen.hide { opacity: 0; pointer-events: none; }
+.hero-layout {
+  display: flex; align-items: center;
+  gap: clamp(2.5rem, 6vw, 6rem); padding: 2rem; max-width: 840px; width: 100%;
+}
+.drawing-wrap {
+  position: relative; flex-shrink: 0;
+  width: clamp(200px, 28vw, 300px); aspect-ratio: 0.74;
+}
+#draw-canvas { width: 100%; height: 100%; display: block; }
+#pencil {
+  position: absolute; pointer-events: none; z-index: 10;
+  width: 28px; height: 28px; transform: translate(-4px, -26px);
+  opacity: 1; transition: opacity 0.4s ease;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+.hero-text { flex: 1; }
+.line { overflow: hidden; display: block; }
+.line span { display: block; transform: translateY(105%); transition: transform 0.65s cubic-bezier(0.16,1,0.3,1); }
+.line span.up { transform: translateY(0); }
+.hero-label { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 1.2rem; }
+.hero-name { font-family: var(--sans); font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 300; line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 1.25rem; }
+.hero-name strong { font-weight: 400; }
+.hero-desc { font-size: 0.9rem; color: var(--muted); font-weight: 300; line-height: 1.8; max-width: 360px; margin-bottom: 2rem; }
+.hero-cta { display: flex; gap: 1.5rem; align-items: center; opacity: 0; transform: translateY(8px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.hero-cta.show { opacity: 1; transform: translateY(0); }
+.cta-primary { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--ink); padding-bottom: 2px; transition: opacity 0.2s; }
+.cta-primary:hover { opacity: 0.4; }
+.cta-secondary { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.cta-secondary:hover { color: var(--ink); }
+#progress-bar { position: absolute; bottom: 0; left: 0; height: 1px; background: #e5e5e5; width: 100%; }
+#progress-fill { height: 100%; background: var(--ink); width: 0%; transition: width 0.1s linear; }
+#skip-btn {
+  position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 300;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+  background: none; border: 1px solid var(--border); padding: 0.35rem 0.75rem;
+  border-radius: 2px; cursor: pointer; letter-spacing: 0.06em;
+  transition: color 0.2s, border-color 0.2s, opacity 0.4s;
+}
+#skip-btn:hover { color: var(--ink); border-color: var(--ink); }
+#skip-btn.hidden { opacity: 0; pointer-events: none; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 2rem; background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+  opacity: 0; transition: opacity 0.5s ease;
+}
+nav.show { opacity: 1; }
+.nav-name { font-family: var(--mono); font-size: 0.78rem; color: var(--ink); text-decoration: none; }
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.nav-links a:hover { color: var(--ink); }
+
+/* ── PAGE ── */
+#page-content { opacity: 0; transition: opacity 0.6s ease; }
+#page-content.show { opacity: 1; }
+main { max-width: 720px; margin: 0 auto; padding: 8rem 2rem 6rem; }
+
+/* ─────────────────────────────
+   MICRO-INTERACTIONS
+───────────────────────────── */
+
+/* Animated underline draws left→right */
+.u-line {
+  position: relative; display: inline; text-decoration: none; color: inherit;
+}
+.u-line::after {
+  content: ''; position: absolute; bottom: -1px; left: 0;
+  width: 0%; height: 1px; background: var(--ink);
+  transition: width 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.u-line:hover::after { width: 100%; }
+
+/* Highlight warm sweep */
+.hl {
+  position: relative; display: inline;
+}
+.hl::before {
+  content: ''; position: absolute;
+  bottom: 0; left: -3px; right: -3px; height: 45%;
+  background: #f5e5d0; z-index: -1;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
+}
+.hl:hover::before { transform: scaleX(1); }
+
+/* Scramble chars */
+.scramble { display: inline-block; cursor: default; }
+
+/* Magnetic element */
+.magnetic { display: inline-block; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+
+/* Green pulse dot */
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:0.5} }
+.dot-pulse { animation: pulse 2.2s ease infinite; }
+
+/* Project title char lift */
+.proj-title .char {
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), color 0.25s;
+  transition-delay: calc(var(--i) * 0.016s);
+}
+.project-item:hover .proj-title .char { transform: translateY(-2.5px); }
+
+/* Count-up number */
+.count-up { display: inline-block; font-variant-numeric: tabular-nums; }
+
+/* Section / project styles */
+.section-label { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.5rem; }
+.projects { margin-bottom: 5rem; }
+.project-item {
+  display: grid; grid-template-columns: 1fr auto; align-items: start;
+  padding: 2rem 0; border-top: 1px solid var(--border);
+  text-decoration: none; color: inherit; cursor: pointer;
+}
+.project-item:last-child { border-bottom: 1px solid var(--border); }
+.proj-left { display: flex; flex-direction: column; gap: 0.4rem; padding-right: 2rem; }
+.proj-client { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+.proj-title { font-size: 1.05rem; font-weight: 400; color: var(--ink); }
+.proj-desc { font-size: 0.83rem; color: var(--muted); font-weight: 300; line-height: 1.65; max-width: 440px; margin-top: 0.2rem; }
+.proj-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.proj-tag {
+  font-family: var(--mono); font-size: 0.62rem; padding: 0.18rem 0.5rem;
+  border: 1px solid var(--border); border-radius: 2px; color: var(--muted);
+  transition: border-color 0.2s, color 0.2s;
+}
+.project-item:hover .proj-tag { border-color: #bbb; color: #555; }
+.proj-arrow {
+  font-size: 1rem; color: var(--muted); margin-top: 0.2rem; display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), color 0.25s;
+}
+.project-item:hover .proj-arrow { transform: translate(4px,-4px); color: var(--ink); }
+.project-image-wrap {
+  position: fixed; width: 260px; pointer-events: none; z-index: 50;
+  opacity: 0; transform: translateY(12px) scale(0.97);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border-radius: 4px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+}
+.project-image-wrap img { width: 100%; display: block; object-fit: cover; object-position: top; aspect-ratio: 16/10; }
+
+/* About */
+.about { margin-bottom: 5rem; }
+.about p { font-size: 0.9rem; color: var(--muted); font-weight: 300; line-height: 1.85; margin-bottom: 1rem; }
+.about p strong { color: var(--ink); font-weight: 400; }
+.about-stats { margin-top: 2rem; display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.stat { padding: 1.25rem 1.5rem; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.stat-num { font-family: var(--sans); font-size: 2rem; font-weight: 300; line-height: 1; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.35rem; }
+.stat-label { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); letter-spacing: 0.06em; line-height: 1.4; }
+.about-facts { margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.fact { padding: 1rem 1.25rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.fact:nth-child(even) { border-right: none; }
+.fact:nth-last-child(-n+2) { border-bottom: none; }
+.fact-label { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 0.3rem; }
+.fact-value { font-size: 0.83rem; color: var(--ink); }
+
+footer { border-top: 1px solid var(--border); padding: 2rem 2rem 3rem; max-width: 720px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-links a { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); text-decoration: none; }
+.footer-copy { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+.fade-in { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+.fade-in.d1{transition-delay:0.08s} .fade-in.d2{transition-delay:0.16s}
+.fade-in.d3{transition-delay:0.24s} .fade-in.d4{transition-delay:0.32s}
+
+@media(max-width:600px) {
+  .hero-layout { flex-direction: column; align-items: flex-start; gap: 2rem; padding: 1.5rem; }
+  .drawing-wrap { width: 160px; } nav .nav-links { display: none; }
+  .about-stats { grid-template-columns: 1fr; }
+  .stat { border-right: none; border-bottom: 1px solid var(--border); }
+  .stat:last-child { border-bottom: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro-screen">
+  <div class="hero-layout">
+    <div class="drawing-wrap" id="drawing-wrap">
+      <canvas id="draw-canvas"></canvas>
+      <svg id="pencil" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 21l1.5-5.5L17.5 3a2.121 2.121 0 0 1 3 3L8.5 18.5 3 21z" stroke="#222" stroke-width="1.4" stroke-linejoin="round" fill="white"/>
+        <path d="M15 5l4 4" stroke="#222" stroke-width="1.4"/>
+        <path d="M3 21l1.5-5.5 4 4L3 21z" fill="#222" stroke="none"/>
+        <line x1="6" y1="18" x2="8" y2="20" stroke="#555" stroke-width="0.8"/>
+      </svg>
+    </div>
+    <div class="hero-text">
+      <div class="hero-label"><div class="line"><span id="l0">Senior Product Designer · Dallas, TX</span></div></div>
+      <h1 class="hero-name">
+        <div class="line"><span id="l1">Hi, I'm</span></div>
+        <div class="line"><span id="l2"><strong>Anne-Sophie.</strong></span></div>
+      </h1>
+      <p class="hero-desc">
+        <span class="line"><span id="l3">I design complex digital products</span></span>
+        <span class="line"><span id="l4">and turn them into clear, scalable</span></span>
+        <span class="line"><span id="l5">experiences.</span></span>
+      </p>
+      <div class="hero-cta" id="hero-cta">
+        <a href="#work" class="cta-primary" id="cta-work">See my work ↓</a>
+        <a href="https://www.linkedin.com/in/anne-sophie-richard" target="_blank" class="cta-secondary">LinkedIn ↗</a>
+      </div>
+    </div>
+  </div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+</div>
+
+<button id="skip-btn">Skip intro</button>
+
+<nav id="main-nav">
+  <a href="#" class="nav-name">Anne-Sophie Richard</a>
+  <ul class="nav-links">
+    <li><a href="#work">Work</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="https://drive.google.com/file/d/1NMpu7CvR81Zm3iyOpzfVxStA6fm2oI6Q/view" target="_blank">Resume ↗</a></li>
+  </ul>
+</nav>
+
+<div id="page-content">
+<main>
+
+  <div style="margin-bottom:1rem;padding-top:0;">
+    <p>
+      <span style="display:inline-flex;align-items:center;gap:0.5rem;font-family:var(--mono);font-size:0.68rem;color:var(--muted);">
+        <span class="dot-pulse" style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span>
+        Open to work · Arlington, TX
+      </span>
+    </p>
+    <h1 style="font-size:clamp(1.5rem,3vw,2rem);font-weight:300;line-height:1.45;letter-spacing:-0.01em;margin-top:0.9rem;margin-bottom:1.25rem;">
+      Hi, I'm <strong class="magnetic scramble" data-text="Anne-Sophie." style="font-weight:400;">Anne-Sophie.</strong><br>
+      <span class="scramble" data-text="Senior Product Designer">Senior Product Designer</span>,
+      <span style="color:var(--muted);font-weight:300;">6+ years turning</span><br>
+      <span class="hl">complex systems</span> into <span class="hl">clear experiences.</span>
+    </h1>
+    <p style="font-size:0.9rem;color:var(--muted);font-weight:300;max-width:520px;line-height:1.8;">
+      Previously @
+      <a class="u-line" href="#" style="font-weight:400;color:var(--ink);">Crédit Agricole CIB</a>,
+      <a class="u-line" href="#" style="font-weight:400;color:var(--ink);">AXA Group</a>,
+      <a class="u-line" href="#" style="font-weight:400;color:var(--ink);">Work4</a>.<br>
+      Fintech · Investment Banking · Design Systems · B2B SaaS.
+    </p>
+  </div>
+
+  <div id="work" class="projects" style="margin-top:4rem;">
+    <p class="section-label fade-in">Selected work</p>
+
+    <a class="project-item fade-in d1" href="#" id="p1">
+      <div class="proj-left">
+        <span class="proj-client">CACIB · Crédit Agricole CIB</span>
+        <span class="proj-title">Gospel — Cash Management</span>
+        <span class="proj-desc">0→1 cash management platform for front-office traders. Multi-currency, zero-error, live reconciliation.</span>
+        <div class="proj-tags"><span class="proj-tag">0→1</span><span class="proj-tag">Fintech</span><span class="proj-tag">Investment Banking</span></div>
+      </div><span class="proj-arrow">↗</span>
+    </a>
+    <div class="project-image-wrap" id="preview1"><img src="https://framerusercontent.com/images/lOoaBPTX2il0qEvTJ7kj7zeYac.png" alt="" crossorigin="anonymous"/></div>
+
+    <a class="project-item fade-in d2" href="#" id="p2">
+      <div class="proj-left">
+        <span class="proj-client">CACIB · Crédit Agricole CIB</span>
+        <span class="proj-title">DCM — Investment Banking Platform</span>
+        <span class="proj-desc">Redesigned a complex debt capital markets platform. Workflow restructuring, design system, dev handoff.</span>
+        <div class="proj-tags"><span class="proj-tag">Redesign</span><span class="proj-tag">B2B</span><span class="proj-tag">Design System</span></div>
+      </div><span class="proj-arrow">↗</span>
+    </a>
+    <div class="project-image-wrap" id="preview2"><img src="https://framerusercontent.com/images/lOoaBPTX2il0qEvTJ7kj7zeYac.png" alt="" crossorigin="anonymous"/></div>
+
+    <a class="project-item fade-in d3" href="#" id="p3">
+      <div class="proj-left">
+        <span class="proj-client">AXA Group</span>
+        <span class="proj-title">Design System — 30 Countries</span>
+        <span class="proj-desc">Group-wide design system: tokens, components, documentation, governance across 30 countries.</span>
+        <div class="proj-tags"><span class="proj-tag">Design System</span><span class="proj-tag">Scale</span><span class="proj-tag">Insurance</span></div>
+      </div><span class="proj-arrow">↗</span>
+    </a>
+    <div class="project-image-wrap" id="preview3"><img src="https://framerusercontent.com/images/lOoaBPTX2il0qEvTJ7kj7zeYac.png" alt="" crossorigin="anonymous"/></div>
+
+    <a class="project-item fade-in d4" href="#" id="p4">
+      <div class="proj-left">
+        <span class="proj-client">Work4</span>
+        <span class="proj-title">Recruitment Platform</span>
+        <span class="proj-desc">Scalable SaaS for high-volume hiring. End-to-end UX, automation design, component library.</span>
+        <div class="proj-tags"><span class="proj-tag">SaaS</span><span class="proj-tag">Recruitment</span><span class="proj-tag">Automation</span></div>
+      </div><span class="proj-arrow">↗</span>
+    </a>
+    <div class="project-image-wrap" id="preview4"><img src="https://framerusercontent.com/images/lOoaBPTX2il0qEvTJ7kj7zeYac.png" alt="" crossorigin="anonymous"/></div>
+  </div>
+
+  <div id="about" class="about fade-in">
+    <p class="section-label">About</p>
+    <div class="about-stats">
+      <div class="stat">
+        <div class="stat-num"><span class="count-up" data-target="6" data-suffix="+">0</span></div>
+        <div class="stat-label">Years of<br>experience</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><span class="count-up" data-target="30" data-suffix="">0</span></div>
+        <div class="stat-label">Countries,<br>AXA Design System</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><span class="count-up" data-target="4" data-suffix="">0</span></div>
+        <div class="stat-label">Products shipped<br>end-to-end</div>
+      </div>
+    </div>
+    <p style="margin-top:1.75rem;">French product designer based in Arlington, Texas. My background combines <span class="hl">art direction</span> (Master's, ECV Paris) with 6+ years of product design in high-stakes, complex environments.</p>
+    <p>I've built platforms from scratch at <a class="u-line" href="#" style="font-weight:400;color:var(--ink);">Crédit Agricole CIB</a>, deployed a design system at <a class="u-line" href="#" style="font-weight:400;color:var(--ink);">AXA</a> across 30 countries, and shipped SaaS products end-to-end. I embed deep in cross-functional teams and care about craft as much as collaboration.</p>
+    <p>Currently open to <span class="scramble" data-text="Senior Product Designer">Senior Product Designer</span> roles in fintech, SaaS, or complex B2B — remote or hybrid, Dallas–Fort Worth.</p>
+    <div class="about-facts">
+      <div class="fact"><div class="fact-label">Location</div><div class="fact-value">Arlington, TX (DFW)</div></div>
+      <div class="fact"><div class="fact-label">Experience</div><div class="fact-value">6+ years</div></div>
+      <div class="fact"><div class="fact-label">Background</div><div class="fact-value">Product Design + Art Direction</div></div>
+      <div class="fact"><div class="fact-label">Education</div><div class="fact-value">Master, ECV Paris</div></div>
+    </div>
+  </div>
+
+</main>
+<footer>
+  <span class="footer-copy">© 2026 Anne-Sophie Richard</span>
+  <div class="footer-links">
+    <a class="u-line" href="https://www.linkedin.com/in/anne-sophie-richard" target="_blank">LinkedIn ↗</a>
+    <a class="u-line" href="mailto:annesophie.richard.design@gmail.com">Email</a>
+    <a class="u-line" href="https://drive.google.com/file/d/1NMpu7CvR81Zm3iyOpzfVxStA6fm2oI6Q/view" target="_blank">Resume ↗</a>
+  </div>
+</footer>
+</div>
+
+<script>
+(function() {
+
+  /* ══ PENCIL INTRO ══ */
+  const TOTAL_DURATION = 9000;
+  const IMG_URL = 'https://framerusercontent.com/images/37e9T9WHOhStN9SrCO8Au0So8.png';
+  const wrap=document.getElementById('drawing-wrap'),canvas=document.getElementById('draw-canvas'),
+        pencil=document.getElementById('pencil'),ctx=canvas.getContext('2d'),fill=document.getElementById('progress-fill');
+
+  const srcImg=new Image(); srcImg.crossOrigin='anonymous';
+  srcImg.onerror=fallback; srcImg.onload=initDrawing; srcImg.src=IMG_URL;
+
+  function fallback(){
+    const img=document.createElement('img'); img.src=IMG_URL;
+    img.style.cssText='width:100%;height:100%;object-fit:contain;display:block;';
+    wrap.appendChild(img); revealText(0); setTimeout(dismissIntro,2500);
+  }
+
+  function initDrawing(){
+    const NW=srcImg.naturalWidth, NH=srcImg.naturalHeight;
+    canvas.width=NW; canvas.height=NH;
+    const off=document.createElement('canvas'); off.width=NW; off.height=NH;
+    const oCtx=off.getContext('2d'); oCtx.drawImage(srcImg,0,0);
+    let px; try{ px=oCtx.getImageData(0,0,NW,NH).data; }catch(e){ fallback(); return; }
+    const edge=new Uint8Array(NW*NH);
+    for(let i=0;i<NW*NH;i++){const b=i*4; edge[i]=(0.299*px[b]+0.587*px[b+1]+0.114*px[b+2])<160?1:0;}
+    const visited=new Uint8Array(NW*NH), strokes=[];
+    const D8=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+    for(let y=1;y<NH-1;y++)for(let x=1;x<NW-1;x++){
+      const idx=y*NW+x; if(!edge[idx]||visited[idx]) continue;
+      const stroke=[]; let cx=x,cy=y;
+      for(let s=0;s<1200;s++){
+        visited[cy*NW+cx]=1; stroke.push([cx,cy]);
+        let best=null,bs=-1;
+        const ld=stroke.length>1?[cx-stroke[stroke.length-2][0],cy-stroke[stroke.length-2][1]]:[0,0];
+        for(const[dx,dy]of D8){const nx=cx+dx,ny=cy+dy; if(nx<0||ny<0||nx>=NW||ny>=NH) continue;
+          const ni=ny*NW+nx; if(!edge[ni]||visited[ni]) continue;
+          const dot=dx*ld[0]+dy*ld[1]; if(dot+1>bs){bs=dot+1;best=[nx,ny];}}
+        if(!best) break; [cx,cy]=best;
+      } if(stroke.length>3) strokes.push(stroke);
+    }
+    strokes.sort((a,b)=>Math.abs(a[0][1]-b[0][1])>40?a[0][1]-b[0][1]:a[0][0]-b[0][0]);
+    const pts=[]; for(const s of strokes) for(let i=0;i<s.length;i++) pts.push({x:s[i][0],y:s[i][1],ns:i===0});
+    const TOT=pts.length; ctx.lineCap='round'; ctx.lineJoin='round';
+    const times=new Float32Array(TOT); let cum=0;
+    for(let i=0;i<TOT;i++){const dt=pts[i].ns?0.008+Math.random()*0.017:0.0003+Math.random()*0.0005+(Math.random()<0.04?0.003:0); cum+=dt; times[i]=cum;}
+    const sc=TOTAL_DURATION/(cum*1000); for(let i=0;i<TOT;i++) times[i]*=sc*1000;
+    function mvPencil(x,y){pencil.style.left=(x*wrap.clientWidth/NW)+'px'; pencil.style.top=(y*wrap.clientHeight/NH)+'px';}
+    let drawn=0,t0=null;
+    function frame(ts){
+      if(!t0) t0=ts; const el=ts-t0;
+      let lo=drawn,hi=TOT; while(lo<hi){const m=(lo+hi)>>1;times[m]<=el?lo=m+1:hi=m;}
+      if(lo>drawn){
+        for(let i=drawn;i<lo;i++){const p=pts[i];
+          if(p.ns){ctx.lineWidth=1+Math.random()*0.7;ctx.globalAlpha=0.72+Math.random()*0.28;ctx.beginPath();ctx.moveTo(p.x,p.y);}
+          else{ctx.lineTo(p.x+(Math.random()-.5)*.35,p.y+(Math.random()-.5)*.35);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);}}
+        const last=pts[lo-1]; mvPencil(last.x,last.y);
+        fill.style.width=Math.min(100,el/TOTAL_DURATION*100).toFixed(1)+'%'; drawn=lo;
+      }
+      if(el<TOTAL_DURATION){requestAnimationFrame(frame);return;}
+      ctx.globalAlpha=1; pencil.style.opacity='0'; fill.style.width='100%';
+      const ov=document.createElement('img'); ov.src=srcImg.src;
+      ov.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:top;opacity:0;transition:opacity 1.2s ease;display:block;';
+      wrap.appendChild(ov); requestAnimationFrame(()=>requestAnimationFrame(()=>{ov.style.opacity='1';}));
+      revealText(0);
+      setTimeout(()=>document.getElementById('hero-cta').classList.add('show'),6*110+300);
+      setTimeout(dismissIntro,6*110+2400);
+    }
+    setTimeout(()=>requestAnimationFrame(frame),300);
+  }
+
+  function revealText(d){
+    ['l0','l1','l2','l3','l4','l5'].forEach((id,i)=>setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('up');},d+i*110));
+  }
+  function dismissIntro(){
+    document.getElementById('intro-screen').classList.add('hide');
+    document.getElementById('skip-btn').classList.add('hidden');
+    setTimeout(()=>{
+      document.getElementById('intro-screen').style.display='none';
+      document.getElementById('page-content').classList.add('show');
+      document.getElementById('main-nav').classList.add('show');
+      initMicro();
+    },850);
+  }
+  function skipAll(){revealText(0);document.getElementById('hero-cta').classList.add('show');setTimeout(dismissIntro,500);}
+  document.getElementById('skip-btn').addEventListener('click',skipAll);
+  document.getElementById('cta-work').addEventListener('click',e=>{
+    e.preventDefault();dismissIntro();setTimeout(()=>document.getElementById('work').scrollIntoView({behavior:'smooth'}),900);
+  });
+
+  /* ══ MICRO-INTERACTIONS ══ */
+  function initMicro(){
+
+    /* Scroll reveal */
+    const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}}),{threshold:0.08});
+    document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+
+    /* Char-split project titles for letter lift */
+    document.querySelectorAll('.proj-title').forEach(el=>{
+      el.innerHTML=el.textContent.split('').map((ch,i)=>ch===' '?' ':`<span class="char" style="--i:${i}">${ch}</span>`).join('');
+    });
+
+    /* Scramble effect */
+    const CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,—-+';
+    document.querySelectorAll('.scramble').forEach(el=>{
+      const orig=el.dataset.text||el.textContent;
+      let raf,iter=0;
+      el.addEventListener('mouseenter',()=>{
+        cancelAnimationFrame(raf); iter=0;
+        (function run(){
+          el.textContent=orig.split('').map((ch,i)=>{
+            if(ch===' ') return ' ';
+            if(i<iter) return orig[i];
+            return CHARS[Math.floor(Math.random()*CHARS.length)];
+          }).join('');
+          iter+=0.45;
+          if(iter<orig.length) raf=requestAnimationFrame(run); else el.textContent=orig;
+        })();
+      });
+    });
+
+    /* Magnetic pull */
+    document.querySelectorAll('.magnetic').forEach(el=>{
+      el.addEventListener('mousemove',e=>{
+        const r=el.getBoundingClientRect();
+        el.style.transform=`translate(${(e.clientX-r.left-r.width/2)*0.1}px,${(e.clientY-r.top-r.height/2)*0.1}px)`;
+      });
+      el.addEventListener('mouseleave',()=>{el.style.transform='translate(0,0)';});
+    });
+
+    /* Count-up on scroll into view */
+    const cObs=new IntersectionObserver(entries=>entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const el=e.target,target=parseInt(el.dataset.target),suffix=el.dataset.suffix||'',t0=performance.now();
+      (function tick(now){
+        const p=Math.min((now-t0)/1200,1),ease=1-Math.pow(1-p,3);
+        el.textContent=Math.round(ease*target)+suffix;
+        if(p<1) requestAnimationFrame(tick);
+      })(t0);
+      cObs.unobserve(el);
+    }),{threshold:0.5});
+    document.querySelectorAll('.count-up').forEach(el=>cObs.observe(el));
+
+    /* Hover previews */
+    [['p1','preview1'],['p2','preview2'],['p3','preview3'],['p4','preview4']].forEach(([id,pid])=>{
+      const item=document.getElementById(id),prev=document.getElementById(pid);
+      if(!item||!prev) return;
+      item.addEventListener('mouseenter',()=>{prev.style.opacity='1';prev.style.transform='translateY(0) scale(1)';});
+      item.addEventListener('mouseleave',()=>{prev.style.opacity='0';prev.style.transform='translateY(12px) scale(0.97)';});
+      item.addEventListener('mousemove',e=>{
+        prev.style.left=Math.min(e.clientX+24,window.innerWidth-280)+'px';
+        prev.style.top=Math.min(Math.max(e.clientY-80,10),window.innerHeight-200)+'px';
+      });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
